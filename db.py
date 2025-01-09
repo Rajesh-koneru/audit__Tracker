@@ -1,22 +1,31 @@
-from flask import Flask ,render_template, redirect ,request ,abort,url_for,Blueprint
-from flask_sqlalchemy import SQLAlchemy
-app=Flask(__name__)
+from flask import Blueprint, render_template
+from flask_login import login_required
 import sqlite3
-db=Blueprint(__name__,'admin_db')
-@db.route('/admin')
+from test import only_one
+
+db1 = Blueprint('admin_db', __name__ ,url_prefix='/admin')  # Correct blueprint initialization
+@db1.route('/admin')
+@login_required
+@only_one('admin')
 def admin_access():
-    conn = sqlite3.connect('auditTracker.db')
-    pointer = conn.cursor()
+    """
+    Route to access admin page. Fetches audit details from the database and renders them.
+    """
+    query = '''SELECT * FROM Audit_details'''
     try:
-        sql=f'''select * from password '''
-        pointer.execute(sql)
-        data=pointer.fetchall()
-        for i in data:
-            print(i)
-        with app.app_context():
-            return render_template('admin.html',datas=data)
+        with sqlite3.connect('auditTracker.db') as conn:
+            cursor = conn.cursor()
+            cursor.execute(query)
+            data = cursor.fetchall()
+            return render_template('admin.html', data=data)
     except sqlite3.OperationalError as e:
-        return str(e)
-    finally:
-        conn.commit()
-admin_access()
+        return f"Database Error: {e}"
+
+@db1.route('/profile')
+@login_required
+def prof():
+    """
+    Route to view a sample profile.
+    """
+    return "Your profile is name: Raju, age: 20, branch: ECE"
+
